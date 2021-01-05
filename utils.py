@@ -25,6 +25,9 @@ def baseline_correct(signal):
     return corrected
 
 def store_dataset(dataset):
+    # leads = ['MLII', 'V1', 'V2', 'V4', 'V5']
+    # index = {'MLII': 1, 'V1': 2, 'V2': 3, 'V4': 4, 'V5': 5}
+    
     with bz2.BZ2File('dataset.pbz2', 'w') as f:
         cPickle.dump(dataset, f)
 

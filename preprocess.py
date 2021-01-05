@@ -40,9 +40,9 @@ Store ECG samples and labels from each lead in dictionary.
 }
 '''
 
-dic = {}
+dataset = {}
 for lead in leads:
-    dic[lead] = []
+    dataset[lead] = []
 
 # Process ECG signal from each patient using wfdb library
 for patient in patients:
@@ -83,10 +83,10 @@ for patient in patients:
             # Store signal with its label in dictionary
             if len(raw_sample_1) == 100:
                 sample_1 = baseline_correct(smooth_signal(raw_sample_1))
-                dic[lead_1].append([sample_1, aami_label])
+                dataset[lead_1].append([sample_1, aami_label])
 
             if len(raw_sample_2) == 100:
                 sample_2 = baseline_correct(smooth_signal(raw_sample_2))
-                dic[lead_2].append([sample_2, aami_label])
+                dataset[lead_2].append([sample_2, aami_label])
 
-store_dataset(dic)
+store_dataset(dataset)
