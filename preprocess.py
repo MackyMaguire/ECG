@@ -75,17 +75,17 @@ for patient in patients:
             aami_label = [int(aami[label] == aami_label) for aami_label in aami_labels]
             peak = ann.sample[i]
 
-            # Extract signal of window size 100 around peak
-            raw_sample_1 = signals_1[peak - 50: peak + 50]
-            raw_sample_2 = signals_2[peak - 50: peak + 50]
+            # Extract signal of window size 256 around peak
+            raw_sample_1 = signals_1[peak - 128: peak + 128]
+            raw_sample_2 = signals_2[peak - 128: peak + 128]
 
             # Smooth and baseline correct signal
             # Store signal with its label in dictionary
-            if len(raw_sample_1) == 100:
+            if len(raw_sample_1) == 256:
                 sample_1 = baseline_correct(smooth_signal(raw_sample_1))
                 dataset[lead_1].append([sample_1, aami_label])
 
-            if len(raw_sample_2) == 100:
+            if len(raw_sample_2) == 256:
                 sample_2 = baseline_correct(smooth_signal(raw_sample_2))
                 dataset[lead_2].append([sample_2, aami_label])
 
