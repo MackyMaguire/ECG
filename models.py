@@ -6,91 +6,100 @@ from keras.optimizers import Adam
 
 # 34-layer CNN from Stanford paper
 def build_cnn():
-    def Conv_1D(strides):
-        return Conv1D(filters=32,
-                      kernel_size=16,
+    def Conv_1D(filters, strides):
+        return Conv1D(filters=filters,
+                      kernel_size=kernel_size,
                       strides=strides,
                       padding='same',
                       kernel_initializer='he_normal')
 
-    def input_block(input):
-        layer = Conv_1D(1)(input)
+    def first_conv_layer(input):
+        layer = Conv_1D(num_filters, 1)(input)
         layer = BatchNormalization()(layer)
         layer = Activation('relu')(layer)
 
-        shortcut = MaxPooling1D(pool_size=1, strides=1)(layer)
+        return layer
 
-        layer = Conv_1D(1)(layer)
-        layer = BatchNormalization()(layer)
-        layer = Activation('relu')(layer)
-        layer = Dropout(0.2)(layer)
-        layer = Conv_1D(1)(layer)
-
-        return Add()([shortcut, layer])
-
-    def hidden_blocks(layer):
+    def looped_residual_layers(layer, num_filters):
         def zeropad(x):
             y = K.zeros_like(x)
-            return K.concatenate([x, y], axis=1)
+            return K.concatenate([x, y], axis=2)
 
         def zeropad_output_shape(input_shape):
             shape = list(input_shape)
             shape[1] *= 2
             return tuple(shape)
 
-        filter_length = 32
-        n_blocks = 15
-        for block_index in range(n_blocks):
-            subsample_length = 2 if block_index % 2 == 0 else 1
+        for index in range(1, num_loops + 1):
+            is_subsample = (index % subsample_freq == 0)
+            strides = 2 if is_subsample else 1
 
-            shortcut = MaxPooling1D(pool_size=subsample_length)(layer)
+            is_increase_filters = (index % increase_filters_freq == 0)
+            num_filters *= 2 if is_increase_filters else 1
 
-            if block_index % 4 == 0 and block_index > 0:
-                shortcut = Lambda(zeropad, output_shape=zeropad_output_shape)(shortcut)
-                filter_length *= 2
+            shortcut = MaxPooling1D(pool_size=strides)(layer)
+            if is_increase_filters:
+                shortcut = Lambda(
+                    zeropad, output_shape=zeropad_output_shape)(shortcut)
+
+            if index > 1:
+                layer = BatchNormalization()(layer)
+                layer = Activation('relu')(layer)
+
+            layer = Conv_1D(filters=num_filters,
+                            strides=strides)(layer)
 
             layer = BatchNormalization()(layer)
             layer = Activation('relu')(layer)
-            layer = Conv1D(filters=filter_length,
-                           kernel_size=16,
-                           padding='same',
-                           strides=subsample_length,
-                           kernel_initializer='he_normal')(layer)
-
-            layer = BatchNormalization()(layer)
-            layer = Activation('relu')(layer)
-            layer = Dropout(0.2)(layer)
-            layer = Conv1D(filters=filter_length,
-                           kernel_size=16,
-                           padding='same',
-                           strides=1,
-                           kernel_initializer='he_normal')(layer)
+            layer = Dropout(dropout)(layer)
+            layer = Conv_1D(filters=num_filters,
+                            strides=1)(layer)
 
             layer = Add()([shortcut, layer])
 
         return layer
 
-    def output_block(layer):
+    def output_layer(layer):
         layer = BatchNormalization()(layer)
         layer = Activation('relu')(layer)
-        outputs = Dense(len_classes, activation='softmax')(layer)
-        model = Model(inputs=inputs, outputs=outputs)
 
-        adam = Adam(lr=0.1, beta_1=0.9, beta_2=0.999,
-                    epsilon=None, decay=0.0, amsgrad=False)
+        layer = Flatten()(layer)
+        #outputs = TimeDistributed(Dense(num_classes, activation='softmax'))(layer)
+        outputs = Dense(num_classes, activation='softmax')(layer)
+        print(outputs.shape)
 
-        model.compile(optimizer=adam,
-                      loss='categorical_crossentropy',
-                      metrics=['accuracy'])
-        model.summary()
+        return outputs
 
-        return model
+    input_shape = (256, 1)
 
-    len_classes = 5
+    num_classes = 5
 
-    input = Input(shape=(100, 1), name='input')
-    layer = input_block(input)
-    layer = hidden_blocks(layer)
-    model = output_block(layer)
+    num_filters = 32
+    kernel_size = 16
+    dropout = 0.2
+
+    # Number of residual block loops
+    num_loops = 16
+
+    # Subsample input by factor of 2 every alternate residual block
+    subsample_freq = 2
+
+    # Double number of filters every 4 residual block
+    increase_filters_freq = 4
+
+    inputs = Input(shape=input_shape, name='inputs')
+    layer = first_conv_layer(inputs)
+    layer = looped_residual_layers(layer, num_filters)
+    outputs = output_layer(layer)
+
+    model = Model(inputs=inputs, outputs=outputs)
+
+    optimizer = Adam(lr=0.1, beta_1=0.9, beta_2=0.999,
+                     epsilon=None, decay=0.0, amsgrad=False)
+
+    model.compile(optimizer=optimizer,
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
+    # model.summary()
 
     return model

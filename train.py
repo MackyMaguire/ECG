@@ -8,12 +8,12 @@ from utils import load_dataset, plot_confusion_matrix, print_results
 # Using data from lead MLII
 dataset = load_dataset()['MLII']
 
-x = np.array([sample[0] for sample in dataset])
+x = np.array([np.expand_dims(sample[0], axis=1) for sample in dataset])
 y = np.array([np.array(sample[1]) for sample in dataset])
 
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
 
-model = create_cnn()
+model = build_cnn()
 
 callbacks = [
         EarlyStopping(patience=10, verbose=1),
