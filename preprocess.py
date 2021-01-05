@@ -72,7 +72,7 @@ for patient in patients:
 
         if label in labels:
             # One-hot encode label
-            aami_label = [int(aami[label] == label) for label in aami_labels]
+            aami_label = [int(aami[label] == aami_label) for aami_label in aami_labels]
             peak = ann.sample[i]
 
             # Extract signal of window size 100 around peak
