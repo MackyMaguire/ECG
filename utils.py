@@ -16,7 +16,6 @@ def smooth_signal(signal):
 
     return smoothed
 
-
 def baseline_correct(signal):
     degree = 2
 
